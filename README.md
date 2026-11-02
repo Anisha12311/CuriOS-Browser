@@ -7,10 +7,6 @@
 Browse the web, and CuriOS quietly maps how your research fits together:<br>
 every page, note and question, linked in a graph, organised by project.
 
-[![Watch the 3-minute product tour](docs/media/demo-poster.jpg)](docs/media/curios-demo.mp4)
-
-<sub>▶ Click the image to watch the product tour (MP4, 3 min 26 s).</sub>
-
 </div>
 
 ---
@@ -56,9 +52,13 @@ The research panel next to the page keeps three things:
 - **notes** linked to the page you're reading (starred notes stay at the top)
 - your **trail** through the session
 
-| Clip from any page | Notes linked to the page |
-|---|---|
-| ![A clipped paragraph in the research panel next to the article](docs/media/clip.jpg) | ![Research panel with a note about the current page](docs/media/notes.jpg) |
+**Clip from any page**
+
+![A clipped paragraph in the research panel next to the article](docs/media/clip.jpg)
+
+**Notes linked to the page**
+
+![Research panel with a note about the current page](docs/media/notes.jpg)
 
 ### 🔎 Search, find and come back
 - The address bar searches **Google, Bing or DuckDuckGo**, with live suggestions as you type, plus matches from your history, bookmarks and open tabs.
@@ -66,9 +66,13 @@ The research panel next to the page keeps three things:
 - The **library** keeps bookmarks (**Ctrl+D**) and history grouped by day, searchable for one workspace or all of them.
 - **Session snapshots** save every open tab to reopen later, and closed tabs come back with **Alt+Shift+T**.
 
-| Start page | Library |
-|---|---|
-| ![Start page with search and research overview](docs/media/start-page.jpg) | ![Library with history across all workspaces](docs/media/library.jpg) |
+**Start page**
+
+![Start page with search and research overview](docs/media/start-page.jpg)
+
+**Library**
+
+![Library with history across all workspaces](docs/media/library.jpg)
 
 ### 🛡️ Private by default
 - **Tracker blocking** has three levels:
@@ -171,3 +175,13 @@ frontend/
 ## Tech stack
 
 Electron 45 · React 19 · TypeScript · MUI 9 · Vite 8 · SQLite (`node:sqlite`)
+
+---
+
+## Demo video
+
+<video src="docs/media/curios-demo.mp4" poster="docs/media/demo-poster.jpg" controls width="100%"></video>
+
+[![Watch the CuriOS product tour](docs/media/demo-poster.jpg)](docs/media/curios-demo.mp4)
+
+<sub>▶ Click the image to watch the product tour (MP4, 3 min 26 s).</sub>
