@@ -32,29 +32,132 @@ export function makeTab(wsId: string, url: string, id: string = uid("t")): Brows
   return { id, ws: wsId, url, title: titleFor(url), pinned: false, group: null, stack: [url], i: 0, last: now(), sleeping: false, lastNode: null };
 }
 
-function place(g: Graph, src: GraphNode | null) {
-  const N = g.nodes;
-  let x: number, y: number;
+const GAP_X = 60;
+const GAP_Y = 32;
+const ORIGIN = 80;
+
+function isFree(g: Graph, x: number, y: number, type: NodeType) {
+  const size = SIZE[type];
+  return !g.nodes.some((n) => {
+    const other = SIZE[n.type];
+    return x < n.x + other.w + GAP_X && n.x < x + size.w + GAP_X && y < n.y + other.h + GAP_Y && n.y < y + size.h + GAP_Y;
+  });
+}
+
+/** Whether any two nodes in the graph overlap. */
+export function hasOverlap(g: Graph) {
+  return g.nodes.some((a, i) =>
+    g.nodes.slice(i + 1).some((b) => {
+      const sa = SIZE[a.type];
+      const sb = SIZE[b.type];
+      return a.x < b.x + sb.w && b.x < a.x + sa.w && a.y < b.y + sb.h && b.y < a.y + sa.h;
+    }),
+  );
+}
+
+// 0, 1, -1, 2, -2, ...: tries the preferred spot first, then alternates either side of it.
+const spread = (i: number) => (i % 2 ? (i + 1) / 2 : -i / 2);
+
+/**
+ * A free spot for a new node that does not overlap any other node.
+ * Pages go in the column to the right of the page they came from, notes and questions below it.
+ */
+function place(g: Graph, src: GraphNode | null, type: NodeType = "page") {
+  const size = SIZE[type];
   if (src) {
-    const kids = g.edges.filter((e) => e.a === src.id).length;
-    const ang = ((-55 + kids * 55) * Math.PI) / 180;
-    x = src.x + 260 * Math.cos(ang);
-    y = src.y + 170 * Math.sin(ang);
-  } else {
-    const i = N.length;
-    x = 80 + (i % 4) * 250;
-    y = 80 + Math.floor(i / 4) * 140;
-  }
-  let tries = 0;
-  const clash = () => N.some((n) => Math.abs(n.x - x) < 210 && Math.abs(n.y - y) < 84);
-  while (clash() && tries++ < 40) {
-    y += 96;
-    if (tries % 3 === 0) {
-      y -= 288;
-      x += 40;
+    const from = SIZE[src.type];
+    if (type === "page") {
+      for (let column = 0; column < 6; column++) {
+        const x = src.x + (from.w + GAP_X + 40) * (column + 1);
+        for (let i = 0; i < 24; i++) {
+          const y = Math.max(20, src.y + spread(i) * (size.h + GAP_Y));
+          if (isFree(g, x, y, type)) return { x: Math.round(x), y: Math.round(y) };
+        }
+      }
+    } else {
+      for (let row = 0; row < 6; row++) {
+        const y = src.y + (from.h + GAP_Y + 16) * (row + 1);
+        for (let i = 0; i < 12; i++) {
+          const x = Math.max(20, src.x + spread(i) * (size.w + GAP_X));
+          if (isFree(g, x, y, type)) return { x: Math.round(x), y: Math.round(y) };
+        }
+      }
     }
   }
-  return { x: Math.round(Math.max(20, x)), y: Math.round(Math.max(20, y)) };
+  for (let i = 0; ; i++) {
+    const x = ORIGIN + (i % 4) * (SIZE.page.w + GAP_X + 40);
+    const y = ORIGIN + Math.floor(i / 4) * (SIZE.note.h + GAP_Y + 16);
+    if (isFree(g, x, y, type)) return { x, y };
+  }
+}
+
+/**
+ * Lays the whole graph out as a tidy tree: each page in the column after the page it was reached from,
+ * with its notes and questions stacked under it.
+ */
+export function arrange(g: Graph) {
+  const byId = new Map(g.nodes.map((n) => [n.id, n]));
+  const pages = g.nodes.filter((n) => n.type === "page").sort((a, b) => a.ts - b.ts);
+  const children = new Map<string, GraphNode[]>();
+  const attached = new Map<string, GraphNode[]>();
+  const attachedIds = new Set<string>();
+  const hasParent = new Set<string>();
+  g.edges.forEach((e) => {
+    const a = byId.get(e.a);
+    const b = byId.get(e.b);
+    if (!a || !b || a.id === b.id) return;
+    if (a.type === "page" && b.type === "page") {
+      if (hasParent.has(b.id)) return;
+      hasParent.add(b.id);
+      children.set(a.id, [...(children.get(a.id) ?? []), b]);
+      return;
+    }
+    const [extra, page] = a.type === "page" ? [b, a] : [a, b];
+    if (page.type !== "page" || extra.type === "page" || attachedIds.has(extra.id)) return;
+    attachedIds.add(extra.id);
+    attached.set(page.id, [...(attached.get(page.id) ?? []), extra]);
+  });
+
+  const columnX = (depth: number) => ORIGIN + depth * (SIZE.page.w + GAP_X + 40);
+  const placed = new Set<string>();
+  let cursorY = ORIGIN;
+
+  // Places a page and everything reached from it; returns the bottom of its subtree.
+  function layout(page: GraphNode, depth: number, top: number): number {
+    placed.add(page.id);
+    page.x = columnX(depth);
+    page.y = top;
+    let bottom = top + SIZE.page.h;
+    (attached.get(page.id) ?? []).forEach((extra) => {
+      placed.add(extra.id);
+      extra.x = page.x + 10;
+      extra.y = bottom + GAP_Y;
+      bottom = extra.y + SIZE[extra.type].h;
+    });
+    let childTop = top;
+    [...(children.get(page.id) ?? [])]
+      .sort((a, b) => a.ts - b.ts)
+      .forEach((child) => {
+        if (placed.has(child.id)) return;
+        childTop = layout(child, depth + 1, childTop) + GAP_Y;
+      });
+    return Math.max(bottom, childTop - GAP_Y);
+  }
+
+  pages.forEach((page) => {
+    if (placed.has(page.id) || hasParent.has(page.id)) return;
+    cursorY = layout(page, 0, cursorY) + GAP_Y * 2;
+  });
+  // Pages only reachable through a loop, then loose notes and questions.
+  pages.forEach((page) => {
+    if (!placed.has(page.id)) cursorY = layout(page, 0, cursorY) + GAP_Y * 2;
+  });
+  g.nodes
+    .filter((n) => !placed.has(n.id))
+    .forEach((n, i) => {
+      n.x = ORIGIN + (i % 4) * (SIZE.page.w + GAP_X);
+      n.y = cursorY + Math.floor(i / 4) * (SIZE.note.h + GAP_Y);
+    });
 }
 
 function addHistory(s: BrowserState, wsId: string, url: string, title: string) {
@@ -77,7 +180,7 @@ export function visit(s: BrowserState, tab: Pick<BrowserTab, "ws" | "url" | "tit
   let n = g.nodes.find((x) => x.type === "page" && x.key === key) ?? null;
   const src = nodeById(g, tab.lastNode);
   if (!n) {
-    const p = place(g, src);
+    const p = place(g, src, "page");
     n = { id: uid("n"), type: "page", key, url: u, title, x: p.x, y: p.y, ts: now(), visits: 1 };
     g.nodes.push(n);
   } else {
@@ -92,9 +195,10 @@ export function visit(s: BrowserState, tab: Pick<BrowserTab, "ws" | "url" | "tit
   return n;
 }
 
-export function addNode(s: BrowserState, wsId: string, o: { type: NodeType; text?: string; x?: number; y?: number }) {
+/** Adds a node at a given spot, or at a free spot near another node (or anywhere) when none is given. */
+export function addNode(s: BrowserState, wsId: string, o: { type: NodeType; text?: string; x?: number; y?: number; near?: GraphNode | null }) {
   const g = graphOf(s, wsId);
-  const p = o.x != null && o.y != null ? { x: o.x, y: o.y } : place(g, null);
+  const p = o.x != null && o.y != null ? { x: o.x, y: o.y } : place(g, o.near ?? null, o.type);
   const n: GraphNode = { id: uid("n"), type: o.type, text: o.text || "", x: p.x, y: p.y, ts: now() };
   g.nodes.push(n);
   return n;
@@ -221,7 +325,7 @@ export function addNoteIn(s: BrowserState, tabId: string, text: string) {
   if (!t) return;
   const src = nodeById(graphOf(s, t.ws), t.lastNode);
   if (src) {
-    const n = addNode(s, t.ws, { type: "note", text, x: src.x - 40 + Math.round(Math.random() * 40), y: src.y + 150 });
+    const n = addNode(s, t.ws, { type: "note", text, near: src });
     link(s, t.ws, n.id, src.id, "note");
   } else addNode(s, t.ws, { type: "note", text });
   s.panel = { open: true, tab: "notes" };

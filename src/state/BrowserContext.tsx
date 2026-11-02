@@ -77,6 +77,8 @@ export interface BrowserApi {
   clearBookmarks: () => void;
   /** Removes every node and link from the active workspace's graph. */
   clearGraph: () => void;
+  /** Rearranges the active workspace's graph so no nodes overlap. */
+  arrangeGraph: () => void;
   addClip: (text: string) => void;
   addGraphNode: (type: NodeType, x: number, y: number) => string;
   moveNode: (id: string, x: number, y: number) => void;
@@ -388,7 +390,7 @@ export function BrowserProvider({ children }: { children: ReactNode }) {
         const g = M.graphOf(d, ws.id);
         const src = M.nodeById(g, tab?.lastNode ?? null);
         if (src) {
-          const n = M.addNode(d, ws.id, { type: "note", text, x: src.x - 40 + Math.round(Math.random() * 40), y: src.y + 150 });
+          const n = M.addNode(d, ws.id, { type: "note", text, near: src });
           M.link(d, ws.id, n.id, src.id, "note");
         } else M.addNode(d, ws.id, { type: "note", text });
       });
@@ -480,6 +482,7 @@ export function BrowserProvider({ children }: { children: ReactNode }) {
       update((d) => void (d.bookmarks = d.bookmarks.filter((b) => b.ws !== ws.id)));
       toast("Bookmarks cleared", "warn");
     },
+    arrangeGraph: () => update((d) => M.arrange(M.graphOf(d, ws.id))),
     clearGraph: () => {
       update((d) => {
         const g = M.graphOf(d, ws.id);

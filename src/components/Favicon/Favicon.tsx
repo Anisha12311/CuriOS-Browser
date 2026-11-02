@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { domainOf, internalName, kindOf } from '../../data/urls';
 import { useBrowser } from '../../state/BrowserContext';
 import { FaviconBox, FaviconImage, Spinner } from '../../styled/MUI/Common.styles';
@@ -24,10 +25,14 @@ interface FaviconProps {
 
 export default function Favicon({ url, iconUrl, size = 20, isLoading = false }: FaviconProps) {
   const { state } = useBrowser();
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
   if (isLoading) return <Spinner $size={Math.round(size * 0.75)} aria-label="Loading" />;
   const isInternal = kindOf(url) === 'internal';
   const siteIcon = iconUrl ?? (isInternal ? undefined : state.favicons[domainOf(url)]);
-  if (siteIcon) return <FaviconImage src={siteIcon} alt="" $size={size} />;
+  if (siteIcon && siteIcon !== failedSrc) {
+    // Sites without a working favicon fall back to the globe instead of a broken image.
+    return <FaviconImage src={siteIcon} alt="" $size={size} onError={() => setFailedSrc(siteIcon)} />;
+  }
   return (
     <FaviconBox $size={size}>
       <Icon name={isInternal ? (ICON_BY_PAGE[internalName(url)] ?? 'globe') : 'globe'} size={Math.round(size * 0.6)} />

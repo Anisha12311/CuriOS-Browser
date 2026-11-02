@@ -5,7 +5,7 @@ import Favicon from '../../components/Favicon/Favicon';
 import GraphInspector from '../../components/GraphInspector/GraphInspector';
 import Icon, { type IconName } from '../../components/Icon/Icon';
 import { useBrowser } from '../../state/BrowserContext';
-import { SIZE } from '../../state/model';
+import { hasOverlap, SIZE } from '../../state/model';
 import type { GraphNode, NodeType } from '../../state/types';
 import { ActionButton, EmptyState, Grow, ToolButton } from '../../styled/MUI/Common.styles';
 import {
@@ -64,8 +64,12 @@ export default function GraphPage() {
     if (rect) setView(fitView(nodes, rect.width, rect.height));
   }
 
-  // Runs once on mount: frame the graph to the canvas size.
-  useLayoutEffect(fit, []);
+  // Runs once on mount: tidy a graph whose cards overlap, then frame it to the canvas size.
+  useLayoutEffect(() => {
+    if (hasOverlap(graph)) handleArrange();
+    else fit();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function worldPoint(event: PointerEvent) {
     const rect = canvasRef.current!.getBoundingClientRect();
@@ -118,6 +122,12 @@ export default function GraphPage() {
     zoomAt(event.deltaY < 0 ? 1.1 : 1 / 1.1, event.clientX - rect.left, event.clientY - rect.top);
   }
 
+  function handleArrange() {
+    browser.arrangeGraph();
+    // Frame the new layout once it has rendered.
+    requestAnimationFrame(() => requestAnimationFrame(fit));
+  }
+
   async function handleClear() {
     const isConfirmed = await confirm({
       title: `Clear the ${ws.name} graph?`,
@@ -166,6 +176,12 @@ export default function GraphPage() {
             {filter.label}
           </FilterPill>
         ))}
+        {graph.nodes.length > 1 && (
+          <ActionButton $small onClick={handleArrange}>
+            <Icon name="grid" size={14} />
+            Tidy up
+          </ActionButton>
+        )}
         {graph.nodes.length > 0 && (
           <ActionButton $small onClick={handleClear}>
             <Icon name="trash" size={14} />
