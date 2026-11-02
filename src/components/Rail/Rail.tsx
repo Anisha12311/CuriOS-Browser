@@ -1,4 +1,4 @@
-import { internalName, kindOf } from '../../data/sites';
+import { internalName, kindOf } from '../../data/urls';
 import { useBrowser } from '../../state/BrowserContext';
 import type { Workspace } from '../../state/types';
 import { Kbd } from '../../styled/MUI/Common.styles';
@@ -48,7 +48,7 @@ export default function Rail({ onOpenPalette }: RailProps) {
         <RailLogo>
           <Icon name="logo" size={22} />
         </RailLogo>
-        {isOpen && <b>Synapse</b>}
+        {isOpen && <b>CuriOS Browser</b>}
         <RailToggle
           aria-label={isOpen ? 'Collapse sidebar' : 'Expand sidebar'}
           title={isOpen ? 'Collapse' : 'Expand'}

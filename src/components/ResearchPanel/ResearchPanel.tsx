@@ -1,10 +1,13 @@
-import { useState, type FormEvent } from 'react';
+import { useState, type FormEvent, type KeyboardEvent } from 'react';
+import { kindOf } from '../../data/urls';
 import { useBrowser } from '../../state/BrowserContext';
 import type { PanelTab as PanelTabKey } from '../../state/types';
 import { ActionButton, BareInput, EmptyState, Grow, ToolButton } from '../../styled/MUI/Common.styles';
 import {
   LinkButton,
-  NoteForm,
+  AttachChip,
+  NoteComposer,
+  NotesEmpty,
   PanelBody,
   PanelCard,
   PanelFoot,
@@ -17,6 +20,7 @@ import { timeAgo } from '../../utils/time';
 import Favicon from '../Favicon/Favicon';
 import Icon from '../Icon/Icon';
 import MiniTrailMap from '../MiniTrailMap/MiniTrailMap';
+import NoteCard from '../NoteCard/NoteCard';
 
 const PANEL_TABS: { key: PanelTabKey; label: string }[] = [
   { key: 'clips', label: 'Clips' },
@@ -31,17 +35,37 @@ export default function ResearchPanel() {
   const [noteDraft, setNoteDraft] = useState('');
   const graph = state.graph[ws.id] ?? { nodes: [], edges: [] };
   const clips = state.clips.filter(clip => clip.ws === ws.id);
-  const notes = graph.nodes.filter(node => node.type === 'note');
+  const notes = graph.nodes
+    .filter(node => node.type === 'note')
+    .sort((a, b) => Number(!!b.star) - Number(!!a.star) || b.ts - a.ts);
+  const nodeById = new Map(graph.nodes.map(node => [node.id, node]));
+  const pageOfNote = (noteId: string) => {
+    const edge = graph.edges.find(link => link.a === noteId && link.label === 'note');
+    const page = edge ? nodeById.get(edge.b) : undefined;
+    return page?.type === 'page' ? page : null;
+  };
+  const isOnWebPage = !!tab && kindOf(tab.url) === 'external';
   const pages = graph.nodes.filter(node => node.type === 'page').sort((a, b) => b.ts - a.ts);
   const countByTab: Record<PanelTabKey, number> = { clips: clips.length, notes: notes.length, trail: pages.length };
   const activeTab = state.panel.tab;
 
-  function handleAddNote(event: FormEvent) {
-    event.preventDefault();
+  function addNote() {
     const text = noteDraft.trim();
     if (!text) return;
     browser.addNote(text);
     setNoteDraft('');
+  }
+
+  function handleAddNote(event: FormEvent) {
+    event.preventDefault();
+    addNote();
+  }
+
+  function handleNoteKeyDown(event: KeyboardEvent) {
+    if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
+      event.preventDefault();
+      addNote();
+    }
   }
 
   function openUrl(url: string) {
@@ -86,29 +110,47 @@ export default function ResearchPanel() {
         )}
         {ws.graph && activeTab === 'notes' && (
           <>
-            <NoteForm onSubmit={handleAddNote}>
+            <NoteComposer onSubmit={handleAddNote}>
               <BareInput
-                className="field"
-                placeholder="Add a note about this page"
+                className="composer-field"
+                multiline
+                minRows={3}
+                maxRows={8}
+                placeholder={isOnWebPage ? 'What did you learn from this page?' : 'Write a note…'}
                 value={noteDraft}
                 inputProps={{ 'aria-label': 'New note' }}
                 onChange={event => setNoteDraft(event.target.value)}
+                onKeyDown={handleNoteKeyDown}
               />
-              <ActionButton $variant="primary" $small type="submit">
-                Add
-              </ActionButton>
-            </NoteForm>
-            {!notes.length && <EmptyState>No notes yet.</EmptyState>}
+              <div className="composer-foot">
+                <AttachChip title={isOnWebPage ? tab.url : undefined}>
+                  {isOnWebPage ? (
+                    <>
+                      <Favicon url={tab.url} size={14} />
+                      <span className="chip-text">
+                        On <b>{tab.title}</b>
+                      </span>
+                    </>
+                  ) : (
+                    <span className="chip-text">Ctrl+Enter to save</span>
+                  )}
+                </AttachChip>
+                <ActionButton $variant="primary" $small type="submit" disabled={!noteDraft.trim()}>
+                  Save note
+                </ActionButton>
+              </div>
+            </NoteComposer>
+            {!notes.length && (
+              <NotesEmpty>
+                <span className="empty-icon">
+                  <Icon name="note" size={22} />
+                </span>
+                <b>Capture your thinking</b>
+                Notes are linked to the page you are reading and appear on the research graph.
+              </NotesEmpty>
+            )}
             {notes.map(note => (
-              <PanelCard key={note.id} $isNote>
-                <div className="text">{note.text}</div>
-                <div className="meta">
-                  <Grow />
-                  <ToolButton $size={28} aria-label="Delete note" onClick={() => browser.removeNode(note.id)}>
-                    <Icon name="trash" size={14} />
-                  </ToolButton>
-                </div>
-              </PanelCard>
+              <NoteCard key={note.id} note={note} page={pageOfNote(note.id)} onOpenPage={openUrl} />
             ))}
           </>
         )}

@@ -7,31 +7,150 @@ import { omitProps } from '../../utils/styled';
 
 export const StyledMenu = styled(Menu)(({ theme }) => ({
   '& .MuiPaper-root': {
-    minWidth: 260,
-    marginTop: 6,
-    padding: 8,
-    borderRadius: 16,
-    boxShadow: theme.browser.popShadow,
-    outline: `1px solid ${theme.browser.hairline}`,
+    width: 304,
+    marginTop: 8,
+    borderRadius: 20,
+    overflow: 'hidden',
+    background: theme.browser.paper,
+    border: `1px solid ${theme.browser.hairlineSoft}`,
+    boxShadow: '0 22px 56px rgba(20, 36, 84, .18), 0 3px 10px rgba(20, 36, 84, .06)',
   },
   '& .MuiList-root': { padding: 0 },
 }));
 
+export const MainMenuHead = styled('div')(({ theme }) => ({
+  display: 'flex',
+  alignItems: 'center',
+  gap: 10,
+  padding: theme.spacing(1.75, 2, 1.5),
+  background: `linear-gradient(180deg, ${theme.browser.softBlue3}, ${theme.browser.paper})`,
+  '& .head-text': { flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', lineHeight: 1.25 },
+  '& .head-text b': { fontSize: 14.5, fontWeight: 650, color: theme.browser.navy },
+  '& .head-text span': {
+    fontSize: 12.5,
+    color: theme.browser.ink3,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  },
+}));
+
+export const MenuLogo = styled('span')(({ theme }) => ({
+  width: 34,
+  height: 34,
+  flex: 'none',
+  display: 'grid',
+  placeItems: 'center',
+  borderRadius: 11,
+  color: theme.browser.paper,
+  background: theme.browser.primaryGradient,
+  boxShadow: theme.browser.primaryShadow,
+}));
+
+export const QuickActions = styled('div')(({ theme }) => ({
+  display: 'grid',
+  gridTemplateColumns: 'repeat(3, 1fr)',
+  gap: 8,
+  padding: theme.spacing(0.5, 1.5, 1.25),
+}));
+
+export const QuickAction = styled(ButtonBase)(({ theme }) => ({
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  gap: 6,
+  padding: theme.spacing(1.25, 0.5),
+  borderRadius: 14,
+  fontSize: 12,
+  fontWeight: 500,
+  color: theme.browser.ink2,
+  background: theme.browser.softBlue3,
+  border: `1px solid ${theme.browser.hairlineSoft}`,
+  transition: 'background .15s, border-color .15s, color .15s, transform .15s',
+  '& .quick-icon': { color: theme.palette.primary.main },
+  '&:hover, &.Mui-focusVisible': {
+    color: theme.browser.navy,
+    background: theme.browser.softBlue,
+    borderColor: theme.browser.hoverBlue,
+    transform: 'translateY(-1px)',
+  },
+  '&.Mui-disabled': { opacity: 0.45 },
+}));
+
+export const MenuSectionLabel = styled('div')(({ theme }) => ({
+  padding: theme.spacing(1.25, 2.25, 0.5),
+  fontSize: 11,
+  fontWeight: 600,
+  letterSpacing: '.06em',
+  textTransform: 'uppercase',
+  color: theme.browser.ink3,
+  borderTop: `1px solid ${theme.browser.hairlineSoft}`,
+}));
+
 export const StyledMenuItem = styled(MenuItem)(({ theme }) => ({
-  minHeight: 40,
+  minHeight: 42,
   gap: 12,
-  padding: theme.spacing(0, 1.5),
-  borderRadius: 10,
+  margin: theme.spacing(0, 1),
+  padding: theme.spacing(0.5, 1),
+  borderRadius: 12,
   fontSize: 14,
-  '&:hover': { background: theme.browser.softBlue, color: theme.browser.linkHover },
+  color: theme.browser.ink,
+  '& .item-icon': {
+    width: 30,
+    height: 30,
+    flex: 'none',
+    display: 'grid',
+    placeItems: 'center',
+    borderRadius: 9,
+    color: theme.browser.ink2,
+    background: theme.browser.panel,
+    transition: 'background .15s, color .15s',
+  },
+  '&:hover, &.Mui-focusVisible': {
+    background: theme.browser.softBlue,
+    color: theme.browser.navy,
+    '& .item-icon': { color: theme.palette.primary.main, background: theme.browser.paper },
+  },
+  '&:last-of-type': { marginBottom: theme.spacing(1) },
 }));
 
 export const MenuItemLabel = styled('span')({ flex: 1, minWidth: 0 });
 
-export const MenuItemHint = styled('span')(({ theme }) => ({
-  fontSize: 12,
+export const MenuItemHint = styled('kbd')(({ theme }) => ({
+  minWidth: 22,
+  padding: '2px 7px',
+  borderRadius: 7,
+  fontFamily: 'inherit',
+  fontSize: 11.5,
+  textAlign: 'center',
   color: theme.browser.ink3,
+  background: theme.browser.paper,
+  border: `1px solid ${theme.browser.hairline}`,
 }));
+
+export const MenuSwitch = styled('span', { shouldForwardProp: omitProps('$isOn') })<{ $isOn: boolean }>(
+  ({ theme, $isOn }) => ({
+    width: 32,
+    height: 18,
+    flex: 'none',
+    position: 'relative',
+    borderRadius: 999,
+    background: $isOn ? theme.palette.primary.main : theme.browser.hairline,
+    transition: 'background .15s',
+    '&::after': {
+      content: '""',
+      position: 'absolute',
+      top: 2,
+      left: $isOn ? 16 : 2,
+      width: 14,
+      height: 14,
+      borderRadius: '50%',
+      background: theme.browser.paper,
+      boxShadow: '0 1px 3px rgba(0, 0, 0, .2)',
+      transition: 'left .15s',
+    },
+  }),
+);
 
 export const WorkspacePopover = styled(Popover)(({ theme }) => ({
   '& .MuiPaper-root': {

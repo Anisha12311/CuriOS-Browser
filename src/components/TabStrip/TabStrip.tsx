@@ -1,5 +1,5 @@
 import { useRef, useState, type KeyboardEvent, type MouseEvent } from 'react';
-import { hostOf, kindOf } from '../../data/sites';
+import { hostOf, kindOf } from '../../data/urls';
 import { useElementWidth } from '../../hooks/useElementWidth';
 import { useBrowser } from '../../state/BrowserContext';
 import type { BrowserTab } from '../../state/types';
@@ -65,7 +65,7 @@ function TabButton({ tab, iconUrl, isActive, isLoading, onSelect, onClose }: Tab
           <TabText>
             <TabTitle $isActive={isActive}>{tab.title}</TabTitle>
             <TabHost>
-              {isInternal ? 'Synapse' : hostOf(tab.url)}
+              {isInternal ? 'CuriOS' : hostOf(tab.url)}
               {tab.sleeping ? ' · sleeping' : ''}
             </TabHost>
           </TabText>

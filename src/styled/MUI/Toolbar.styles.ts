@@ -78,16 +78,6 @@ export const SuggestionRow = styled('div', { shouldForwardProp: omitProps('$isOn
   '& .sub': { fontSize: 12, color: theme.browser.ink3, whiteSpace: 'nowrap' },
 }));
 
-export const AssistantButton = styled(ButtonBase)(({ theme }) => ({
-  width: 40,
-  height: 40,
-  flex: 'none',
-  borderRadius: '50%',
-  color: theme.browser.ink3,
-  border: `1px dashed ${theme.browser.ink3}`,
-  '&:hover': { background: theme.browser.hover },
-}));
-
 export const LoadBar = styled('div', { shouldForwardProp: omitProps('$isLoading') })<{
   $isLoading: boolean;
 }>(({ theme, $isLoading }) => ({
@@ -97,6 +87,7 @@ export const LoadBar = styled('div', { shouldForwardProp: omitProps('$isLoading'
   height: 2,
   width: 0,
   background: theme.palette.primary.main,
-  animation: $isLoading ? 'synapse-load .35s ease-out forwards' : 'none',
-  '@keyframes synapse-load': { from: { width: 0 }, to: { width: '100%' } },
+  // Slows down as it nears the end and disappears when loading stops.
+  animation: $isLoading ? 'synapse-load 8s cubic-bezier(.1,.7,.2,1) forwards' : 'none',
+  '@keyframes synapse-load': { from: { width: 0 }, to: { width: '90%' } },
 }));

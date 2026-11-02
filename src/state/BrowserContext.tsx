@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
-import { hostOf, kindOf, resolve, siteKey, titleFor } from "../data/sites";
+import { domainOf, hostOf, internalName, kindOf, resolve, siteKey, titleFor } from "../data/urls";
 import {
   closeNativeTab,
   isNativeUrl,
@@ -18,6 +18,8 @@ export interface PageInfo {
   favicon?: string | null;
   canGoBack: boolean;
   canGoForward: boolean;
+  /** Tracker requests blocked on the current page. */
+  blockedCount?: number;
 }
 
 export type ToastTone = "ok" | "warn" | "err";
@@ -54,13 +56,15 @@ export interface BrowserApi {
   setPanelTab: (k: PanelTab) => void;
   toggleRail: () => void;
   toggleVtabs: () => void;
-  hideAi: () => void;
   isBookmarked: (url: string) => boolean;
   toggleBookmark: () => void;
   addNote: (text: string) => void;
   removeClip: (id: string) => void;
   removeNode: (id: string) => void;
+  /** Saves the open tabs of the active workspace so they can be reopened later. */
   saveSnapshot: () => void;
+  restoreSnapshot: (id: string) => void;
+  deleteSnapshot: (id: string) => void;
   toast: (msg: string, tone?: ToastTone) => void;
   dismissToast: (id: string) => void;
   setSetting: <K extends keyof Settings>(key: K, value: Settings[K]) => void;
@@ -69,7 +73,10 @@ export interface BrowserApi {
   updateWorkspace: (id: string, patch: Partial<Omit<Workspace, "id">>) => void;
   removeBookmark: (id: string) => void;
   removeHistory: (id: string) => void;
-  clearHistory: () => void;
+  clearHistory: (allWorkspaces?: boolean) => void;
+  clearBookmarks: () => void;
+  /** Removes every node and link from the active workspace's graph. */
+  clearGraph: () => void;
   addClip: (text: string) => void;
   addGraphNode: (type: NodeType, x: number, y: number) => string;
   moveNode: (id: string, x: number, y: number) => void;
@@ -172,16 +179,31 @@ export function BrowserProvider({ children }: { children: ReactNode }) {
     const bridge = window.desktop?.tabs;
     if (!bridge) return;
     const unsubscribeState = bridge.onState((page) => {
-      setLoading((l) => ({ ...l, [page.id]: page.isLoading }));
+      setLoading((l) => (l[page.id] === page.isLoading ? l : { ...l, [page.id]: page.isLoading }));
       setPageInfo((info) => ({
         ...info,
-        [page.id]: { ...info[page.id], canGoBack: page.canGoBack, canGoForward: page.canGoForward },
+        [page.id]: {
+          ...info[page.id],
+          canGoBack: page.canGoBack,
+          canGoForward: page.canGoForward,
+          blockedCount: page.didNavigate ? 0 : info[page.id]?.blockedCount,
+        },
       }));
       if (!page.url) return;
       update((d) => {
         const t = d.tabs.find((x) => x.id === page.id);
         if (!t) return;
-        t.title = page.title || hostOf(page.url);
+        // While a page loads, Electron reports its URL as the title; keep the last real title until one arrives.
+        const hasRealTitle = !!page.title && page.title !== page.url;
+        if (hasRealTitle) {
+          t.title = page.title;
+          // Pages are recorded when they commit, before their <title> arrives.
+          const entry = d.history.find((h) => h.ws === t.ws && h.url === page.url);
+          if (entry) entry.title = page.title;
+          const node = d.graph[t.ws]?.nodes.find((n) => n.type === "page" && n.url === page.url);
+          if (node) node.title = page.title;
+        }
+        else if (page.didNavigate) t.title = hostOf(page.url);
         // Until a navigation commits, Electron still reports the previous page's URL.
         if (!page.didNavigate) return;
         t.url = page.url;
@@ -189,20 +211,55 @@ export function BrowserProvider({ children }: { children: ReactNode }) {
         M.visit(d, t);
       });
     });
-    const unsubscribeFavicon = bridge.onFavicon(({ id, favicon }) =>
-      setPageInfo((info) => ({ ...info, [id]: { ...(info[id] ?? { canGoBack: false, canGoForward: false }), favicon } })),
-    );
+    const unsubscribeFavicon = bridge.onFavicon(({ id, favicon }) => {
+      setPageInfo((info) => ({ ...info, [id]: { ...(info[id] ?? { canGoBack: false, canGoForward: false }), favicon } }));
+      update((d) => {
+        const t = d.tabs.find((x) => x.id === id);
+        if (t && favicon && kindOf(t.url) === "external") d.favicons[domainOf(t.url)] = favicon;
+      });
+    });
     const unsubscribeError = bridge.onError(({ url, message }) =>
       toast(`Could not load ${hostOf(url)}: ${message}`, "err"),
     );
     const unsubscribeOpen = bridge.onOpen(({ url }) => openTab(url));
+    const unsubscribeSearch = bridge.onSearch(({ query }) => openTab(query));
+    const unsubscribeClip = bridge.onClip(({ id, text }) => {
+      update((d) => M.addClipIn(d, id, text));
+      toast("Clipped to the research panel");
+    });
+    const unsubscribeNote = bridge.onNote(({ id, text }) => {
+      update((d) => M.addNoteIn(d, id, text));
+      toast("Note added to the research graph");
+    });
+    const unsubscribeBlocked =
+      window.desktop?.privacy?.onBlocked((countByTab) => {
+        const total = Object.values(countByTab).reduce((sum, count) => sum + count, 0);
+        update((d) => void (d.stats.blocked += total));
+        setPageInfo((info) => {
+          const next = { ...info };
+          Object.entries(countByTab).forEach(([id, count]) => {
+            const current = next[id] ?? { canGoBack: false, canGoForward: false };
+            next[id] = { ...current, blockedCount: (current.blockedCount ?? 0) + count };
+          });
+          return next;
+        });
+      }) ?? (() => undefined);
     return () => {
       unsubscribeState();
       unsubscribeFavicon();
       unsubscribeError();
       unsubscribeOpen();
+      unsubscribeSearch();
+      unsubscribeClip();
+      unsubscribeNote();
+      unsubscribeBlocked();
     };
   }, [update, toast, openTab]);
+
+  const trackerLevel = state.settings.trackers;
+  useEffect(() => {
+    window.desktop?.privacy?.setLevel(trackerLevel);
+  }, [trackerLevel]);
 
   const activate = useCallback(
     (id: string) =>
@@ -311,10 +368,6 @@ export function BrowserProvider({ children }: { children: ReactNode }) {
       update((d) => void (d.settings.vtabs = !d.settings.vtabs));
       toast(state.settings.vtabs ? "Tabs moved to the top" : "Tabs moved to the sidebar");
     },
-    hideAi: () => {
-      update((d) => void (d.settings.hideAi = true));
-      toast("Hidden. You can bring it back in Settings.");
-    },
     isBookmarked: (url) => state.bookmarks.some((b) => b.ws === ws.id && siteKey(b.url) === siteKey(url)),
     toggleBookmark: () => {
       if (!tab || kindOf(tab.url) === "internal") return;
@@ -347,7 +400,36 @@ export function BrowserProvider({ children }: { children: ReactNode }) {
         g.nodes = g.nodes.filter((n) => n.id !== id);
         g.edges = g.edges.filter((e) => e.a !== id && e.b !== id);
       }),
-    saveSnapshot: () => toast("Session snapshot saved"),
+    saveSnapshot: () => {
+      const pages = M.tabsOf(state, ws.id).filter((t) => internalName(t.url) !== "newtab");
+      if (!pages.length) {
+        toast("Open some pages first, then save them as a snapshot", "warn");
+        return;
+      }
+      const ts = Date.now();
+      const id = M.uid("s");
+      const name = `${ws.name} · ${new Date(ts).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}`;
+      update((d) => {
+        d.snapshots.unshift({ id, ws: ws.id, name, ts, tabs: pages.map((t) => ({ url: t.url, title: t.title })) });
+        if (d.snapshots.length > 30) d.snapshots.length = 30;
+      });
+      toast(`Saved ${pages.length} ${pages.length === 1 ? "tab" : "tabs"} as a snapshot`);
+    },
+    restoreSnapshot: (id) => {
+      const snapshot = state.snapshots.find((x) => x.id === id);
+      if (!snapshot) return;
+      const wsId = state.workspaces.some((w) => w.id === snapshot.ws) ? snapshot.ws : ws.id;
+      const tabIds = snapshot.tabs.map(() => M.uid("t"));
+      update((d) => {
+        snapshot.tabs.forEach((page, index) => {
+          const t = M.newTabIn(d, wsId, page.url, { id: tabIds[index], activate: index === 0, skipVisit: true });
+          t.title = page.title;
+        });
+        d.activeWs = wsId;
+      });
+      toast(`Reopened ${snapshot.tabs.length} ${snapshot.tabs.length === 1 ? "tab" : "tabs"}`);
+    },
+    deleteSnapshot: (id) => update((d) => void (d.snapshots = d.snapshots.filter((x) => x.id !== id))),
     toast,
     dismissToast,
     setSetting: (key, value) => update((d) => void (d.settings[key] = value)),
@@ -386,9 +468,28 @@ export function BrowserProvider({ children }: { children: ReactNode }) {
       }),
     removeBookmark: (id) => update((d) => void (d.bookmarks = d.bookmarks.filter((b) => b.id !== id))),
     removeHistory: (id) => update((d) => void (d.history = d.history.filter((h) => h.id !== id))),
-    clearHistory: () => {
-      update((d) => void (d.history = d.history.filter((h) => h.ws !== ws.id)));
-      toast("History cleared", "warn");
+    clearHistory: (allWorkspaces = false) => {
+      update((d) => {
+        d.history = allWorkspaces ? [] : d.history.filter((h) => h.ws !== ws.id);
+        d.closed = allWorkspaces ? [] : d.closed.filter((c) => c.tab.ws !== ws.id);
+        if (allWorkspaces) d.recent = [];
+      });
+      toast(allWorkspaces ? "History cleared in all workspaces" : `History cleared in ${ws.name}`, "warn");
+    },
+    clearBookmarks: () => {
+      update((d) => void (d.bookmarks = d.bookmarks.filter((b) => b.ws !== ws.id)));
+      toast("Bookmarks cleared", "warn");
+    },
+    clearGraph: () => {
+      update((d) => {
+        const g = M.graphOf(d, ws.id);
+        g.nodes = [];
+        g.edges = [];
+        d.clips.forEach((c) => {
+          if (c.ws === ws.id) c.nodeId = null;
+        });
+      });
+      toast("Graph cleared", "warn");
     },
     addClip: (text) => {
       if (!tab) return;

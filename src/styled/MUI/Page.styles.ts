@@ -24,6 +24,17 @@ export const FrameHost = styled('div')({
   '& iframe': { position: 'absolute', inset: 0, width: '100%', height: '100%', border: 0 },
 });
 
+/** Stands in for a native page while a popup covers it. */
+export const PageSnapshotImage = styled('img')({
+  position: 'absolute',
+  inset: 0,
+  width: '100%',
+  height: '100%',
+  objectFit: 'fill',
+  pointerEvents: 'none',
+  userSelect: 'none',
+});
+
 export const ExternalBar = styled('div')(({ theme }) => ({
   flex: 'none',
   display: 'flex',

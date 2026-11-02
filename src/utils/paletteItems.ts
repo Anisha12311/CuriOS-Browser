@@ -1,6 +1,7 @@
-import { hostOf, kindOf } from '../data/sites';
+import { hostOf, kindOf } from '../data/urls';
 import type { IconName } from '../components/Icon/Icon';
 import type { BrowserApi } from '../state/BrowserContext';
+import { searchLabel } from '../services/searchSuggestions';
 import type { PaletteTone } from '../styled/MUI/Overlay.styles';
 
 export type PaletteFilter = 'all' | 'tabs' | 'actions' | 'workspaces';
@@ -48,7 +49,7 @@ function actionItems(browser: BrowserApi): PaletteItem[] {
   return items;
 }
 
-/** The palette's sections for a query and filter chip, matching the Synapse HTML palette. */
+/** The palette's sections for a query and filter chip, matching the CuriOS HTML palette. */
 export function buildPaletteSections(browser: BrowserApi, query: string, filter: PaletteFilter): PaletteSectionData[] {
   const { state } = browser;
   const trimmed = query.trim();
@@ -62,7 +63,7 @@ export function buildPaletteSections(browser: BrowserApi, query: string, filter:
     .map(tab => ({
       id: `tab-${tab.id}`,
       title: tab.title,
-      sub: `${workspaceNameById.get(tab.ws) ?? ''} · ${kindOf(tab.url) === 'internal' ? 'Synapse' : hostOf(tab.url)}`,
+      sub: `${workspaceNameById.get(tab.ws) ?? ''} · ${kindOf(tab.url) === 'internal' ? 'CuriOS' : hostOf(tab.url)}`,
       tone: 'tab' as const,
       faviconUrl: tab.url,
       keywords: `${tab.url} ${workspaceNameById.get(tab.ws) ?? ''}`,
@@ -134,7 +135,7 @@ export function buildPaletteSections(browser: BrowserApi, query: string, filter:
     {
       title: 'Search',
       items: isAll
-        ? [{ id: 'search', title: `Search for “${trimmed}”`, sub: 'Built-in demo sites', tone: 'blue' as const, icon: 'search' as const, actionLabel: 'Search', keywords: '', onRun: () => browser.openTab(trimmed) }]
+        ? [{ id: 'search', title: `Search for “${trimmed}”`, sub: searchLabel(state.settings.engine), tone: 'blue' as const, icon: 'search' as const, actionLabel: 'Search', keywords: '', onRun: () => browser.openTab(trimmed) }]
         : [],
     },
     { title: 'Open tabs', items: isAll || filter === 'tabs' ? tabs.slice(0, 6) : [] },

@@ -27,7 +27,17 @@ export const RailHead = styled('div', { shouldForwardProp: omitProps('$isOpen') 
     minHeight: 44,
     padding: '0 2px',
     marginBottom: theme.spacing(1),
-    '& b': { flex: 1, fontSize: 18, fontWeight: 600, letterSpacing: '-.01em', color: theme.browser.rail.title },
+    '& b': {
+      flex: 1,
+      minWidth: 0,
+      fontSize: 18,
+      fontWeight: 600,
+      letterSpacing: '-.01em',
+      color: theme.browser.rail.title,
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap',
+    },
   }),
 );
 

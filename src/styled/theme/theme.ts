@@ -1,6 +1,6 @@
 import { alpha, createTheme, lighten } from '@mui/material/styles';
 
-// Design tokens taken from the Synapse HTML ("Midnight" accent, fade sidebar, white chrome).
+// Design tokens taken from the CuriOS HTML ("Midnight" accent, fade sidebar, white chrome).
 export const tokens = {
   bg: '#E6E9F0',
   panel: '#F2F4F8',

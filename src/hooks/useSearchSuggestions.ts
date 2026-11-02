@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { resolve } from '../data/sites';
+import { resolve } from '../data/urls';
 import type { SearchEngineId } from '../services/nativeTabs';
 import { fetchSearchSuggestions, hasSearchSuggestions } from '../services/searchSuggestions';
 

@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { ENGINES } from '../../data/sites';
+import { ENGINES } from '../../data/urls';
 import Icon, { type IconName } from '../../components/Icon/Icon';
 import { useBrowser } from '../../state/BrowserContext';
 import type { Settings } from '../../state/types';
@@ -29,7 +29,7 @@ const SHORTCUTS = [
   ['Alt+W', 'Close tab'],
   ['Alt+Shift+T', 'Reopen closed tab'],
   ['Alt+L', 'Focus the address bar'],
-  ['Alt+D', 'Bookmark this page'],
+  ['Ctrl+D', 'Bookmark this page'],
   ['Alt+G', 'Open the research graph'],
   ['Alt+1 to 9', 'Switch workspace'],
   ['Alt+Left / Right', 'Back / forward'],
@@ -58,7 +58,7 @@ export default function SettingsPage() {
   const settings = browser.state.settings;
   const [sectionKey, setSectionKey] = useState<SectionKey>('tabs');
   const section = SECTIONS.find(item => item.key === sectionKey) ?? SECTIONS[0];
-  const toggle = (key: keyof Pick<Settings, 'vtabs' | 'railOpen' | 'hideAi' | 'searchSuggestions'>) => () =>
+  const toggle = (key: keyof Pick<Settings, 'vtabs' | 'railOpen' | 'searchSuggestions'>) => () =>
     browser.setSetting(key, !settings[key]);
 
   return (
@@ -66,7 +66,7 @@ export default function SettingsPage() {
       <PageHead>
         <div>
           <h1>Settings</h1>
-          <p>Make Synapse yours. Everything is stored on this device.</p>
+          <p>Make CuriOS yours. Everything is stored on this device.</p>
         </div>
       </PageHead>
       <SettingsColumns>
@@ -97,9 +97,6 @@ export default function SettingsPage() {
               </Row>
               <Row icon="menu" title="Expanded sidebar" description="Show workspace names next to their icons.">
                 <ToggleSwitch checked={settings.railOpen} slotProps={{ input: { 'aria-label': 'Expanded sidebar' } }} onChange={toggle('railOpen')} />
-              </Row>
-              <Row icon="spark" title="Show the assistant button" description="A placeholder for a feature that is coming later.">
-                <ToggleSwitch checked={!settings.hideAi} slotProps={{ input: { 'aria-label': 'Show the assistant button' } }} onChange={toggle('hideAi')} />
               </Row>
             </SurfaceCard>
           )}

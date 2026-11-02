@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef, useState, type PointerEvent, type WheelEvent } from 'react';
-import { hostOf } from '../../data/sites';
+import { hostOf } from '../../data/urls';
+import { useConfirm } from '../../components/ConfirmDialog/ConfirmProvider';
 import Favicon from '../../components/Favicon/Favicon';
 import GraphInspector from '../../components/GraphInspector/GraphInspector';
 import Icon, { type IconName } from '../../components/Icon/Icon';
@@ -9,6 +10,7 @@ import type { GraphNode, NodeType } from '../../state/types';
 import { ActionButton, EmptyState, Grow, ToolButton } from '../../styled/MUI/Common.styles';
 import {
   Canvas,
+  CanvasHint,
   EdgeLabel,
   EdgeLayer,
   FilterPill,
@@ -42,6 +44,7 @@ const [MIN_ZOOM, MAX_ZOOM] = [0.25, 2.2];
 
 export default function GraphPage() {
   const browser = useBrowser();
+  const confirm = useConfirm();
   const { state, ws } = browser;
   const graph = state.graph[ws.id] ?? { nodes: [], edges: [] };
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -115,6 +118,17 @@ export default function GraphPage() {
     zoomAt(event.deltaY < 0 ? 1.1 : 1 / 1.1, event.clientX - rect.left, event.clientY - rect.top);
   }
 
+  async function handleClear() {
+    const isConfirmed = await confirm({
+      title: `Clear the ${ws.name} graph?`,
+      message: 'Every page, note, question and link in this graph will be deleted. Your clips are kept. This cannot be undone.',
+      confirmLabel: 'Clear graph',
+    });
+    if (!isConfirmed) return;
+    setSelectedId(null);
+    browser.clearGraph();
+  }
+
   function handleZoomButton(factor: number) {
     const rect = canvasRef.current?.getBoundingClientRect();
     if (rect) zoomAt(factor, rect.width / 2, rect.height / 2);
@@ -152,6 +166,12 @@ export default function GraphPage() {
             {filter.label}
           </FilterPill>
         ))}
+        {graph.nodes.length > 0 && (
+          <ActionButton $small onClick={handleClear}>
+            <Icon name="trash" size={14} />
+            Clear graph
+          </ActionButton>
+        )}
       </GraphBar>
       <GraphMain>
         <Canvas
@@ -216,6 +236,12 @@ export default function GraphPage() {
               </NodeCard>
             ))}
           </World>
+          {!graph.nodes.length && (
+            <CanvasHint>
+              <b>Your research graph is empty</b>
+              <span>Pages you visit in {ws.name} appear here. Use the tools on the left to add notes and questions.</span>
+            </CanvasHint>
+          )}
           <FloatingTools>
             {TOOLS.map(item => (
               <ToolButton

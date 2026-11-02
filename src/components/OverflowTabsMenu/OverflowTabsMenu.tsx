@@ -1,5 +1,5 @@
 import ButtonBase from '@mui/material/ButtonBase';
-import { hostOf, kindOf } from '../../data/sites';
+import { hostOf, kindOf } from '../../data/urls';
 import { useNativeOverlay } from '../../hooks/useNativeOverlay';
 import { useBrowser } from '../../state/BrowserContext';
 import type { BrowserTab } from '../../state/types';
@@ -64,7 +64,7 @@ export default function OverflowTabsMenu({ anchorElement, hiddenTabs, onClose }:
               <Favicon url={tab.url} size={32} />
               <span className="row-text">
                 <b>{tab.title}</b>
-                <span>{kindOf(tab.url) === 'internal' ? 'Synapse' : hostOf(tab.url)}</span>
+                <span>{kindOf(tab.url) === 'internal' ? 'CuriOS' : hostOf(tab.url)}</span>
               </span>
               <span className="row-ago">{timeAgo(tab.last)}</span>
             </ButtonBase>

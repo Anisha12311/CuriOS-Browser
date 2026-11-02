@@ -11,6 +11,12 @@ contextBridge.exposeInMainWorld("desktop", {
   minimize: () => ipcRenderer.send("window:minimize"),
   maximize: () => ipcRenderer.send("window:maximize"),
   close: () => ipcRenderer.send("window:close"),
+  privacy: {
+    setLevel: (level) => ipcRenderer.send("privacy:set-level", level),
+    onBlocked: (listener) => subscribe("privacy:blocked", listener),
+    cacheSize: () => ipcRenderer.invoke("privacy:cache-size"),
+    clearData: (options) => ipcRenderer.invoke("privacy:clear-data", options),
+  },
   search: {
     suggest: (engine, query) => ipcRenderer.invoke("search:suggest", { engine, query }),
   },
@@ -25,6 +31,7 @@ contextBridge.exposeInMainWorld("desktop", {
     hide: () => ipcRenderer.send("tab:hide"),
     setBounds: (bounds) => ipcRenderer.send("tab:bounds", bounds),
     setOverlay: (isOpen) => ipcRenderer.send("tab:overlay", isOpen),
+    capture: () => ipcRenderer.invoke("tab:capture"),
     back: (id) => ipcRenderer.send("tab:back", id),
     forward: (id) => ipcRenderer.send("tab:forward", id),
     reload: (id) => ipcRenderer.send("tab:reload", id),
@@ -34,5 +41,9 @@ contextBridge.exposeInMainWorld("desktop", {
     onFavicon: (listener) => subscribe("tab:favicon", listener),
     onError: (listener) => subscribe("tab:error", listener),
     onOpen: (listener) => subscribe("tab:open", listener),
+    onSearch: (listener) => subscribe("tab:search", listener),
+    onClip: (listener) => subscribe("tab:clip", listener),
+    onNote: (listener) => subscribe("tab:note", listener),
+    onShortcut: (listener) => subscribe("tab:shortcut", listener),
   },
 });

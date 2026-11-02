@@ -1,4 +1,4 @@
-import { hostOf, kindOf } from '../../data/sites';
+import { hostOf, kindOf } from '../../data/urls';
 import { useBrowser } from '../../state/BrowserContext';
 import { ActionButton, SectionLabel } from '../../styled/MUI/Common.styles';
 import { VerticalTab, VerticalTabsRoot } from '../../styled/MUI/Shell.styles';
@@ -27,7 +27,7 @@ export default function VerticalTabs() {
           <Favicon url={tab.url} iconUrl={pageInfo[tab.id]?.favicon} size={28} isLoading={!!loading[tab.id]} />
           <span className="tab-text">
             <span className="tab-title">{tab.title}</span>
-            <span className="tab-host">{kindOf(tab.url) === 'internal' ? 'Synapse' : hostOf(tab.url)}</span>
+            <span className="tab-host">{kindOf(tab.url) === 'internal' ? 'CuriOS' : hostOf(tab.url)}</span>
           </span>
         </VerticalTab>
       ))}

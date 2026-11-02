@@ -23,6 +23,11 @@ export default function BrowserShell() {
         setIsPaletteOpen(true);
         return;
       }
+      if ((event.ctrlKey || event.metaKey) && key === 'd') {
+        event.preventDefault();
+        browser.toggleBookmark();
+        return;
+      }
       if (!event.altKey) return;
       const workspace = /^[1-9]$/.test(event.key) ? state.workspaces[Number(event.key) - 1] : undefined;
       const actionByKey: Record<string, (() => void) | undefined> = {
@@ -41,7 +46,11 @@ export default function BrowserShell() {
       }
     }
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    const unsubscribeShortcut = window.desktop?.tabs?.onShortcut(init => handleKeyDown(new KeyboardEvent('keydown', init)));
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      unsubscribeShortcut?.();
+    };
   }, [browser, state.workspaces]);
 
   return (

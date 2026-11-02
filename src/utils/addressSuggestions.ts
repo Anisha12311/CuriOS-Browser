@@ -1,4 +1,4 @@
-import { kindOf, resolve, searchSites } from '../data/sites';
+import { kindOf, resolve } from '../data/urls';
 import type { BrowserState } from '../state/types';
 import type { IconName } from '../components/Icon/Icon';
 
@@ -21,7 +21,7 @@ interface SearchOptions {
   searchLabel: string;
 }
 
-/** Address bar suggestions: the typed value, engine suggestions, then tabs, bookmarks, history and demo sites. */
+/** Address bar suggestions: the typed value, engine suggestions, then open tabs, bookmarks and history. */
 export function buildAddressSuggestions(
   state: BrowserState,
   wsId: string,
@@ -71,11 +71,6 @@ export function buildAddressSuggestions(
     .filter(entry => entry.ws === wsId && matches(entry.title + ' ' + entry.url))
     .forEach(entry =>
       add({ id: `url-${entry.url}`, kind: 'url', label: entry.title, sub: 'History', value: entry.url, icon: 'clock' }),
-    );
-  searchSites(trimmed)
-    .slice(0, 3)
-    .forEach(site =>
-      add({ id: `url-${site.url}`, kind: 'url', label: site.title, sub: site.host, value: site.url, icon: 'globe' }),
     );
   return suggestions.slice(0, MAX_SUGGESTIONS);
 }

@@ -1,4 +1,4 @@
-import { ENGINES } from '../data/sites';
+import { ENGINES } from '../data/urls';
 import { hasNativeTabs, type SearchEngineId } from './nativeTabs';
 
 /** True inside Electron, where the main process can fetch the engine's live suggestions. */
@@ -12,9 +12,9 @@ export function fetchSearchSuggestions(engine: SearchEngineId, query: string): P
   return request ? request.catch(() => []) : Promise.resolve([]);
 }
 
-/** For example "Google Search"; outside Electron searches stay on the demo results page. */
+/** For example "Google Search". */
 export function searchLabel(engine: SearchEngineId): string {
-  return hasNativeTabs() ? `${ENGINES[engine].name} Search` : 'Search demo sites';
+  return hasNativeTabs() ? `${ENGINES[engine].name} Search` : `${ENGINES[engine].name} Search (desktop app)`;
 }
 
 export function searchPlaceholder(engine: SearchEngineId): string {

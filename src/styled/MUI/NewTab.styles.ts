@@ -11,6 +11,8 @@ export const NewTabFrame = styled('div')(({ theme }) => ({
 export const Hero = styled('div')(({ theme }) => ({
   position: 'relative',
   isolation: 'isolate',
+  // Above the cards that follow, so the search suggestions open over them.
+  zIndex: 2,
   display: 'flex',
   flexDirection: 'column',
   alignItems: 'center',
@@ -88,37 +90,39 @@ export const HeroSuggestions = styled('div')(({ theme }) => ({
   boxShadow: '0 20px 44px rgba(31, 60, 140, .18)',
 }));
 
-export const TryRow = styled('div')(({ theme }) => ({
+export const TopSitesGrid = styled('div')(({ theme }) => ({
   display: 'flex',
   flexWrap: 'wrap',
   justifyContent: 'center',
-  alignItems: 'center',
-  gap: 12,
-  marginTop: theme.spacing(2.5),
-  fontSize: 13,
-  color: theme.browser.ink3,
+  gap: theme.spacing(1),
+  marginTop: theme.spacing(3),
+  maxWidth: 720,
 }));
 
-export const TryChip = styled(ButtonBase, { shouldForwardProp: omitProps('$tone') })<{ $tone: number }>(
-  ({ theme, $tone }) => {
-    const chip = theme.browser.chips[$tone % theme.browser.chips.length];
-    return {
-      height: 34,
-      gap: 7,
-      padding: theme.spacing(0, 2),
-      borderRadius: 999,
-      fontFamily: 'inherit',
-      fontSize: 13.5,
-      fontWeight: 500,
-      color: chip.ink,
-      background: chip.bg,
-      border: `1.5px solid ${chip.border}`,
-      transition: 'transform .15s, box-shadow .15s',
-      '&::before': { content: '""', width: 7, height: 7, borderRadius: '50%', background: 'currentColor', opacity: 0.55 },
-      '&:hover': { transform: 'translateY(-2px)', boxShadow: '0 6px 14px rgba(31, 60, 140, .12)' },
-    };
+export const TopSiteTile = styled(ButtonBase)(({ theme }) => ({
+  width: 88,
+  flexDirection: 'column',
+  gap: 8,
+  padding: theme.spacing(1.25, 0.5),
+  borderRadius: 14,
+  fontFamily: 'inherit',
+  fontSize: 12.5,
+  color: theme.browser.ink2,
+  '&:hover': { background: theme.browser.softBlue3 },
+  '&:hover .site-icon': { transform: 'translateY(-2px)', borderColor: theme.browser.hoverBlue },
+  '& .site-icon': {
+    width: 52,
+    height: 52,
+    display: 'grid',
+    placeItems: 'center',
+    borderRadius: 16,
+    background: theme.browser.paper,
+    border: `1px solid ${theme.browser.hairline}`,
+    boxShadow: '0 6px 16px rgba(31, 60, 140, .07)',
+    transition: 'transform .15s, border-color .15s',
   },
-);
+  '& .site-name': { width: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'center' },
+}));
 
 export const StatGrid = styled('div')(({ theme }) => ({
   display: 'grid',

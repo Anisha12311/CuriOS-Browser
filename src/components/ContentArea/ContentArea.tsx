@@ -1,5 +1,5 @@
 import type { ComponentType } from 'react';
-import { internalName, kindOf } from '../../data/sites';
+import { internalName, kindOf } from '../../data/urls';
 import GraphPage from '../../pages/GraphPage/GraphPage';
 import LibraryPage from '../../pages/LibraryPage/LibraryPage';
 import NewTabPage from '../../pages/NewTabPage/NewTabPage';
@@ -31,7 +31,7 @@ export default function ContentArea() {
   if (isNativeUrl(tab.url)) {
     return (
       <ContentRoot>
-        <NativeTabView key={tab.id} tab={tab} />
+        <NativeTabView tab={tab} />
       </ContentRoot>
     );
   }

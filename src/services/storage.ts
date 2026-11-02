@@ -4,7 +4,7 @@ import type { BrowserState, Graph, GraphEdge, GraphNode } from '../state/types';
 const LOCAL_STORAGE_KEY = 'synapse.react.v1';
 
 const ENTITY_KEYS = ['workspaces', 'tabs', 'history', 'bookmarks', 'clips', 'graphNodes', 'graphEdges'] as const;
-const META_KEYS = ['v', 'settings', 'activeWs', 'activeTab', 'panel', 'recent', 'stats', 'closed'] as const;
+const META_KEYS = ['v', 'settings', 'activeWs', 'activeTab', 'panel', 'recent', 'stats', 'closed', 'snapshots', 'favicons'] as const;
 
 type EntityKey = (typeof ENTITY_KEYS)[number];
 type MetaKey = (typeof META_KEYS)[number];
@@ -101,6 +101,8 @@ function stateFromSnapshot(snapshot: StoredSnapshot): BrowserState {
   return {
     ...blank,
     ...meta,
+    favicons: meta.favicons ?? {},
+    snapshots: meta.snapshots ?? [],
     settings: { ...blank.settings, ...meta.settings },
     workspaces: stripPosition<BrowserState['workspaces'][number]>(snapshot.entities.workspaces),
     tabs: stripPosition<BrowserState['tabs'][number]>(snapshot.entities.tabs),
@@ -117,7 +119,7 @@ function loadFromLocalStorage(): BrowserState | null {
     const stored = raw ? (JSON.parse(raw) as BrowserState) : null;
     if (!stored?.workspaces?.length) return null;
     const blank = M.blank();
-    return { ...blank, ...stored, settings: { ...blank.settings, ...stored.settings } };
+    return { ...blank, ...stored, favicons: stored.favicons ?? {}, snapshots: stored.snapshots ?? [], settings: { ...blank.settings, ...stored.settings } };
   } catch {
     return null;
   }
@@ -129,14 +131,27 @@ function applySearchDefaults(state: BrowserState): BrowserState {
   return { ...state, settings: { ...state.settings, engine: 'google', searchDefaultsApplied: true } };
 }
 
-/** The state to start with: the database, else existing localStorage data (migrated on first save), else demo data. */
+/** Removes the sample data that earlier versions created, once. Works on a copy so the saved state still shows what to delete. */
+function applySampleCleanup(state: BrowserState): BrowserState {
+  if (state.settings.sampleDataRemoved) return state;
+  const next = structuredClone(state);
+  M.removeSampleData(next);
+  next.settings.sampleDataRemoved = true;
+  return next;
+}
+
+function migrate(state: BrowserState): BrowserState {
+  return applySampleCleanup(applySearchDefaults(state));
+}
+
+/** The state to start with: the database, else existing localStorage data (migrated on first save), else a fresh start. */
 export function loadInitialState(): InitialState {
   const snapshot = window.desktop?.db?.load() as StoredSnapshot | null | undefined;
   if (snapshot) {
     const state = stateFromSnapshot(snapshot);
-    if (state.workspaces.length) return { state: applySearchDefaults(state), savedState: state };
+    if (state.workspaces.length) return { state: migrate(state), savedState: state };
   }
-  return { state: applySearchDefaults(loadFromLocalStorage() ?? M.seed()), savedState: null };
+  return { state: migrate(loadFromLocalStorage() ?? M.fresh()), savedState: null };
 }
 
 export function saveChanges(changes: StorageChanges): Promise<void> {

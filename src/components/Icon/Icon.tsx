@@ -8,6 +8,7 @@ import LockOpenOutlined from "@mui/icons-material/LockOpenOutlined";
 import StarBorderRounded from "@mui/icons-material/StarBorderRounded";
 import StarRounded from "@mui/icons-material/StarRounded";
 import AddRounded from "@mui/icons-material/AddRounded";
+import EditOutlined from "@mui/icons-material/EditOutlined";
 import RemoveRounded from "@mui/icons-material/RemoveRounded";
 import CloseRounded from "@mui/icons-material/CloseRounded";
 import SearchRounded from "@mui/icons-material/SearchRounded";
@@ -62,7 +63,7 @@ const ICONS = {
   trash: DeleteOutlineRounded, undo: RestoreRounded, note: DescriptionOutlined, question: HelpOutlineRounded,
   open: OpenInNewRounded, pin: PushPinOutlined, globe: PublicRounded, loc: PlaceOutlined, info: InfoOutlined,
   tabs: TabRounded, grid: GridViewRounded, sleep: BedtimeOutlined, dl: DownloadRounded, private: VisibilityOutlined,
-  square: CropSquareRounded, logo: LogoIcon,
+  square: CropSquareRounded, edit: EditOutlined, logo: LogoIcon,
 } as const;
 
 export type IconName = keyof typeof ICONS;

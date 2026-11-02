@@ -1,11 +1,20 @@
-import { useEffect, useRef } from 'react';
-import { hideNativeTab, setNativeTabBounds, showNativeTab } from '../../services/nativeTabs';
+import { useEffect, useRef, useState } from 'react';
+import {
+  hideNativeTab,
+  setNativeTabBounds,
+  showNativeTab,
+  subscribePageSnapshot,
+  type PageSnapshot,
+} from '../../services/nativeTabs';
 import type { BrowserTab } from '../../state/types';
-import { FrameHost } from '../../styled/MUI/Page.styles';
+import { FrameHost, PageSnapshotImage } from '../../styled/MUI/Page.styles';
 
 /** Reserves the content area for a real Electron page and keeps the native view sized to it. */
 export default function NativeTabView({ tab }: { tab: BrowserTab }) {
   const hostRef = useRef<HTMLDivElement>(null);
+  const [snapshot, setSnapshot] = useState<PageSnapshot | null>(null);
+
+  useEffect(() => subscribePageSnapshot(setSnapshot), []);
 
   useEffect(() => {
     showNativeTab(tab.id, tab.url);
@@ -29,5 +38,9 @@ export default function NativeTabView({ tab }: { tab: BrowserTab }) {
     };
   }, []);
 
-  return <FrameHost ref={hostRef} aria-label={tab.title} />;
+  return (
+    <FrameHost ref={hostRef} aria-label={tab.title}>
+      {snapshot?.tabId === tab.id && <PageSnapshotImage src={snapshot.src} alt="" draggable={false} />}
+    </FrameHost>
+  );
 }

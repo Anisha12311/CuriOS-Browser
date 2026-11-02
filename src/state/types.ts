@@ -1,4 +1,4 @@
-import type { TrackerLevel } from "../data/sites";
+import type { TrackerLevel } from "../data/urls";
 
 export interface Workspace {
   id: string;
@@ -83,12 +83,22 @@ export type PanelTab = "clips" | "notes" | "trail";
 export interface Settings {
   vtabs: boolean;
   railOpen: boolean;
-  hideAi: boolean;
   trackers: TrackerLevel;
   engine: "ddg" | "bing" | "google";
   searchSuggestions: boolean;
   /** Set once Google has been applied as the default engine. */
   searchDefaultsApplied?: boolean;
+  /** Set once the sample data from earlier versions has been removed. */
+  sampleDataRemoved?: boolean;
+}
+
+/** A saved set of open tabs that can be reopened later. */
+export interface SessionSnapshot {
+  id: string;
+  ws: string;
+  name: string;
+  ts: number;
+  tabs: { url: string; title: string }[];
 }
 
 export interface BrowserState {
@@ -103,7 +113,10 @@ export interface BrowserState {
   graph: Record<string, Graph>;
   clips: Clip[];
   closed: { tab: BrowserTab; at: number }[];
+  snapshots: SessionSnapshot[];
   panel: { open: boolean; tab: PanelTab };
   recent: string[];
-  stats: { blocked: number; upgraded: number; cookies: number };
+  stats: { blocked: number; upgraded: number };
+  /** Favicon URL per domain, captured from real pages. */
+  favicons: Record<string, string>;
 }

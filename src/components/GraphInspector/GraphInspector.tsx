@@ -1,4 +1,4 @@
-import { hostOf } from '../../data/sites';
+import { hostOf } from '../../data/urls';
 import { useBrowser } from '../../state/BrowserContext';
 import type { Graph, GraphNode } from '../../state/types';
 import { ActionButton, BareInput, SectionLabel, ToolButton } from '../../styled/MUI/Common.styles';

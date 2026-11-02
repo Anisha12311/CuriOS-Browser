@@ -1,70 +1,122 @@
-# Getting Started with Create React App
+# CuriOS Browser
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+**The research browser for curious minds.**
 
-## Available Scripts
+CuriOS is a desktop web browser built for research. Alongside normal browsing, it maps the pages you visit into a research graph, lets you clip text and write notes linked to pages, and keeps each project in its own workspace.
 
-In the project directory, you can run:
+It is built with Electron, React, TypeScript and MUI. Everything is stored on your computer in a local SQLite database.
 
-### `npm start`
+---
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+## Features
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+### Browsing
+- Real Chromium pages in every tab, with back, forward, reload and a loading bar.
+- Search from the address bar using Google, Bing or DuckDuckGo, with live suggestions as you type.
+- Address bar suggestions from your history, bookmarks and open tabs.
+- Tabs on top or in the sidebar, with an overflow menu when many are open.
+- A right-click menu on every page:
+  - open a link in a new tab, or copy it
+  - copy an image
+  - search the web for the selected text
+  - clip the selection, or add it as a note
+  - view the page source, or inspect the page
+- A command palette (**Ctrl+K**) to search tabs, history, bookmarks and commands.
 
-### `npm test`
+### Research
+- **Research graph**: every page you visit becomes a card, and following a link draws a line between pages. Add your own notes and questions, link them with labels such as *supports*, *answers* or *contradicts*, then drag, zoom and filter.
+- **Research panel**: clips, notes and your browsing trail beside the page you are reading.
+- **Notes**: linked to the page you wrote them on, with editing in place and starring.
+- **Workspaces**: separate projects, each with its own tabs, history, bookmarks and graph.
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+### Library and sessions
+- Bookmarks (**Ctrl+D**) and history grouped by day, searchable and filtered by workspace.
+- Session snapshots: save all open tabs and reopen them later.
+- Reopen recently closed tabs.
 
-### `npm run build`
+### Privacy
+- Tracker blocking with three levels:
+  - **Standard** blocks ad, analytics and social trackers.
+  - **Strict** also blocks tag managers and fingerprinting.
+  - **Off** blocks nothing.
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+  Live counts show how many trackers were blocked.
+- Sites must ask before using your location, camera, microphone, notifications or screen. USB, serial and similar devices are blocked.
+- One-click clearing of history, cookies and site data, and the cache.
+- Nothing leaves your device except the pages you visit and the search suggestions you request.
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+---
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+## Getting started
 
-### `npm run eject`
+**Requirements:** Node.js 22 or newer, and npm.
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+```bash
+cd frontend
+npm install
+npm start
+```
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+`npm start` runs the Vite dev server and opens the CuriOS desktop window once the server is ready.
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+### Scripts
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+| Command | What it does |
+|---|---|
+| `npm start` | Runs the full desktop app in development mode. |
+| `npm run dev` | Runs only the web UI at http://localhost:5173. This is a preview: web pages open in a limited frame, and tracker blocking, real tabs and the database are not available. |
+| `npm run electron` | Opens the desktop window against an already-running dev server. |
+| `npm run build` | Builds the UI into `dist/`. |
+| `npm run dist` | Builds the UI and packages the app with electron-builder. Packaging is not configured or tested yet. |
 
-## Learn More
+### Keyboard shortcuts
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+| Shortcut | Action |
+|---|---|
+| Ctrl+K | Command palette |
+| Ctrl+D or Alt+D | Bookmark the current page |
+| Alt+T | New tab |
+| Alt+Shift+T | Reopen closed tab |
+| Alt+W | Close tab |
+| Alt+G | Research graph |
+| Alt+R | Reload |
+| Alt+← / Alt+→ | Back / Forward |
+| Alt+1 … Alt+9 | Switch workspace |
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+Shortcuts work even while a web page has focus.
 
-### Code Splitting
+---
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+## Project structure
 
-### Analyzing the Bundle Size
+```
+frontend/
+├─ electron/                 Electron main process
+│  ├─ electron.cjs           App window and startup
+│  ├─ tabs.cjs               One Chromium view per tab, context menu, shortcuts
+│  ├─ privacy.cjs            Tracker blocking, permissions, clearing site data
+│  ├─ db.cjs                 SQLite database (node:sqlite) with full-text history search
+│  ├─ search.cjs             Search suggestions from Google, Bing and DuckDuckGo
+│  └─ preload.cjs            The safe bridge (window.desktop) between the UI and Electron
+└─ src/                      React UI
+   ├─ components/            Toolbar, tab strip, sidebar, research panel, dialogs…
+   ├─ pages/                 New tab, Graph, Library, Workspaces, Privacy, Settings, Restore
+   ├─ state/                 App state, data model and types
+   ├─ services/              Native tabs, storage and search-suggestion helpers
+   ├─ hooks/                 Persistence, popups over pages, suggestions
+   ├─ styled/MUI/            MUI styled components (no plain CSS files)
+   ├─ styled/theme/          Theme and design tokens
+   └─ utils/                 Graph geometry, suggestions, time formatting…
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+### How it works
+- **Tabs**: each tab is an Electron `WebContentsView`, a real Chromium page placed over the React content area. When a popup opens, the page is replaced by a screenshot so the popup can sit on top.
+- **Storage**: app state is saved to `synapse.db` in Electron's user-data folder. Only changed rows are written, a fraction of a second after each change, and everything is flushed when the window closes. The file keeps its earlier name so existing data still loads.
+- **Styling**: every component uses MUI `styled()` with values from the shared theme.
+- **Internal pages**: these use `synapse://` addresses, for example `synapse://graph`. The scheme keeps its earlier name for the same reason.
 
-### Making a Progressive Web App
+---
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+## Tech stack
 
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+Electron 45 · React 19 · TypeScript · MUI 9 · Vite 8 · SQLite (`node:sqlite`)

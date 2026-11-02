@@ -10,6 +10,26 @@ export const GraphRoot = styled('div')(({ theme }) => ({
   background: theme.browser.graph.canvas,
 }));
 
+export const CanvasHint = styled('div')(({ theme }) => ({
+  position: 'absolute',
+  top: '50%',
+  left: '50%',
+  transform: 'translate(-50%, -50%)',
+  maxWidth: 360,
+  display: 'flex',
+  flexDirection: 'column',
+  gap: theme.spacing(0.75),
+  padding: theme.spacing(3),
+  borderRadius: 16,
+  border: `1.5px dashed ${theme.browser.hoverBlue}`,
+  background: theme.browser.paper,
+  color: theme.browser.ink3,
+  textAlign: 'center',
+  fontSize: 13.5,
+  pointerEvents: 'none',
+  '& b': { fontSize: 15, fontWeight: 600, color: theme.browser.navy },
+}));
+
 export const GraphBar = styled('div')(({ theme }) => ({
   height: 64,
   flex: 'none',

@@ -1,5 +1,5 @@
 import { useState, type KeyboardEvent } from 'react';
-import { internalName, kindOf, queryOf } from '../../data/sites';
+import { internalName, kindOf, queryOf } from '../../data/urls';
 import { useNativeOverlay } from '../../hooks/useNativeOverlay';
 import { useSearchSuggestions } from '../../hooks/useSearchSuggestions';
 import { searchLabel, searchPlaceholder } from '../../services/searchSuggestions';
@@ -9,7 +9,6 @@ import { BareInput, ToolButton } from '../../styled/MUI/Common.styles';
 import {
   AddressPill,
   AddressWrap,
-  AssistantButton,
   LoadBar,
   PillButton,
   SuggestionRow,
@@ -115,7 +114,7 @@ export default function Toolbar() {
           <PillButton
             $tone={isBookmarked ? 'on' : 'default'}
             aria-label="Bookmark this page"
-            title="Bookmark (Alt+D)"
+            title="Bookmark (Ctrl+D)"
             disabled={isInternal}
             onClick={browser.toggleBookmark}
           >
@@ -151,17 +150,12 @@ export default function Toolbar() {
       >
         <Icon name="graph" size={18} />
       </ToolButton>
-      {!state.settings.hideAi && (
-        <AssistantButton aria-label="Assistant (coming later)" title="Assistant (coming later)" onClick={() => browser.toast('The assistant is coming later. Synapse works fully without it.')}>
-          <Icon name="spark" size={17} />
-        </AssistantButton>
-      )}
       <ToolButton aria-label="Menu" aria-haspopup="menu" onClick={event => setMenuAnchor(event.currentTarget)}>
         <Icon name="more" size={18} />
       </ToolButton>
       {state.settings.vtabs && <WindowControls />}
       <MainMenu anchorElement={menuAnchor} onClose={() => setMenuAnchor(null)} />
-      <LoadBar key={tab?.url} $isLoading={!!(tab && loading[tab.id])} />
+      <LoadBar key={tab?.id} $isLoading={!!(tab && loading[tab.id])} />
     </ToolbarRoot>
   );
 }

@@ -2,6 +2,7 @@ const { app, BrowserWindow, Menu, ipcMain } = require("electron");
 const path = require("node:path");
 const { registerDatabase } = require("./db.cjs");
 const { registerSearch } = require("./search.cjs");
+const { createPrivacy } = require("./privacy.cjs");
 const { createTabManager } = require("./tabs.cjs");
 
 const createWindow = () => {
@@ -16,7 +17,8 @@ const createWindow = () => {
     frame: false,
   });
   win.setMenuBarVisibility(false);
-  createTabManager(win);
+  const tabs = createTabManager(win);
+  createPrivacy(win, tabs.tabIdFor);
   if (app.isPackaged) {
     win.loadFile(path.join(__dirname, "../dist/index.html"));
   } else {

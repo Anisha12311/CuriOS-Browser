@@ -8,10 +8,10 @@ export function useNativeOverlay(isOpen: boolean) {
   useEffect(() => {
     if (!isOpen) return;
     openOverlayCount += 1;
-    setNativeOverlay(true);
+    void setNativeOverlay(true);
     return () => {
       openOverlayCount -= 1;
-      if (!openOverlayCount) setNativeOverlay(false);
+      if (!openOverlayCount) void setNativeOverlay(false);
     };
   }, [isOpen]);
 }

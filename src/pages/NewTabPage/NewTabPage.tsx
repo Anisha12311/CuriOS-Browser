@@ -1,4 +1,4 @@
-import { hostOf } from '../../data/sites';
+import { hostOf } from '../../data/urls';
 import Favicon from '../../components/Favicon/Favicon';
 import HeroSearchBox from '../../components/HeroSearchBox/HeroSearchBox';
 import Icon, { type IconName } from '../../components/Icon/Icon';
@@ -17,19 +17,19 @@ import {
   SuggestButton,
   SuggestCard,
   TileGrid,
-  TryChip,
-  TryRow,
+  TopSiteTile,
+  TopSitesGrid,
   WorkspacePill,
 } from '../../styled/MUI/NewTab.styles';
 import { greeting, timeAgo } from '../../utils/time';
+import { topSites } from '../../utils/topSites';
 
-const TRY_QUERIES = ['soil sampling', 'wetlands', 'mangrove', 'rail timetable'];
 const JUMP_TILES: { page: string; icon: IconName; title: string; description: string }[] = [
   { page: 'graph', icon: 'graph', title: 'Research graph', description: 'Map what you have found' },
   { page: 'library', icon: 'bookmark', title: 'Library', description: 'Bookmarks and history' },
   { page: 'workspaces', icon: 'grid', title: 'Workspaces', description: 'Switch or create' },
   { page: 'privacy', icon: 'shield', title: 'Privacy', description: 'Trackers and permissions' },
-  { page: 'settings', icon: 'gear', title: 'Settings', description: 'Make Synapse yours' },
+  { page: 'settings', icon: 'gear', title: 'Settings', description: 'Make CuriOS yours' },
 ];
 const RECENT_PAGE_COUNT = 3;
 
@@ -37,6 +37,7 @@ export default function NewTabPage() {
   const browser = useBrowser();
   const { state, ws, tab } = browser;
   const graph = state.graph[ws.id] ?? { nodes: [], edges: [] };
+  const sites = topSites(state.history, ws.id);
   const clips = state.clips.filter(clip => clip.ws === ws.id);
   const bookmarks = state.bookmarks.filter(bookmark => bookmark.ws === ws.id);
   const tabCount = browser.tabsOf(ws.id).length;
@@ -75,14 +76,18 @@ export default function NewTabPage() {
         </WorkspacePill>
         <h1>{greeting()}. What are you researching?</h1>
         <HeroSearchBox onSearch={search} />
-        <TryRow>
-          <span>Try</span>
-          {TRY_QUERIES.map((tryQuery, index) => (
-            <TryChip key={tryQuery} $tone={index} onClick={() => search(tryQuery)}>
-              {tryQuery}
-            </TryChip>
-          ))}
-        </TryRow>
+        {sites.length > 0 && (
+          <TopSitesGrid aria-label="Top sites">
+            {sites.map(site => (
+              <TopSiteTile key={site.domain} title={site.url} onClick={() => search(site.url)}>
+                <span className="site-icon">
+                  <Favicon url={site.url} size={26} />
+                </span>
+                <span className="site-name">{site.domain}</span>
+              </TopSiteTile>
+            ))}
+          </TopSitesGrid>
+        )}
       </Hero>
       <StatGrid>
         {stats.map((stat, index) => (

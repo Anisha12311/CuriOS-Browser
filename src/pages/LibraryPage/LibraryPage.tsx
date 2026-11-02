@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { hostOf } from '../../data/sites';
+import { hostOf } from '../../data/urls';
+import { useConfirm } from '../../components/ConfirmDialog/ConfirmProvider';
 import Favicon from '../../components/Favicon/Favicon';
 import Icon from '../../components/Icon/Icon';
 import { useBrowser } from '../../state/BrowserContext';
@@ -26,6 +27,7 @@ const MAX_HISTORY_ROWS = 150;
 
 export default function LibraryPage() {
   const browser = useBrowser();
+  const confirm = useConfirm();
   const { state, ws, tab } = browser;
   const [activeTab, setActiveTab] = useState<LibraryTab>('bookmarks');
   const [isAllWorkspaces, setIsAllWorkspaces] = useState(false);
@@ -41,6 +43,20 @@ export default function LibraryPage() {
     const label = dayLabel(entry.ts);
     historyByDay.set(label, [...(historyByDay.get(label) ?? []), entry]);
   });
+
+  async function clearActive() {
+    const isBookmarks = activeTab === 'bookmarks';
+    const isConfirmed = await confirm({
+      title: isBookmarks ? `Clear bookmarks in ${ws.name}?` : `Clear history in ${ws.name}?`,
+      message: isBookmarks
+        ? 'Every bookmark saved in this workspace will be deleted. This cannot be undone.'
+        : 'Every page visited in this workspace will be removed from history. Bookmarks and the graph are kept. This cannot be undone.',
+      confirmLabel: isBookmarks ? 'Clear bookmarks' : 'Clear history',
+    });
+    if (!isConfirmed) return;
+    if (isBookmarks) browser.clearBookmarks();
+    else browser.clearHistory();
+  }
 
   function openUrl(url: string) {
     if (tab) browser.navigate(tab.id, url);
@@ -83,10 +99,10 @@ export default function LibraryPage() {
           History <span className="count">{history.length}</span>
         </UnderlineTab>
         <Grow />
-        {activeTab === 'history' && (
-          <ActionButton $small sx={{ mb: 0.75 }} onClick={browser.clearHistory}>
+        {(activeTab === 'bookmarks' ? state.bookmarks : state.history).some(item => item.ws === ws.id) && (
+          <ActionButton $small sx={{ mb: 0.75 }} onClick={clearActive}>
             <Icon name="trash" size={14} />
-            Clear history
+            {activeTab === 'bookmarks' ? 'Clear bookmarks' : 'Clear history'}
           </ActionButton>
         )}
       </TabRow>

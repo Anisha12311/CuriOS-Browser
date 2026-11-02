@@ -1,5 +1,5 @@
 // Pure state helpers. Each mutates the draft it is given; the store clones before calling them.
-import { kindOf, siteKey, titleFor, internalName } from "../data/sites";
+import { kindOf, siteKey, titleFor, internalName } from "../data/urls";
 import type { BrowserState, BrowserTab, Graph, GraphNode, NodeType, Workspace } from "./types";
 
 export const SIZE: Record<NodeType, { w: number; h: number }> = {
@@ -139,75 +139,90 @@ export function closeTabIn(s: BrowserState, id: string) {
 export function blank(): BrowserState {
   return {
     v: 1,
-    settings: { vtabs: false, railOpen: true, hideAi: false, trackers: "standard", engine: "google", searchSuggestions: true, searchDefaultsApplied: true },
-    workspaces: [], activeWs: "", tabs: [], activeTab: {}, bookmarks: [], history: [], graph: {}, clips: [], closed: [],
-    panel: { open: true, tab: "clips" }, recent: [], stats: { blocked: 312, upgraded: 97, cookies: 48 },
+    settings: { vtabs: false, railOpen: true, trackers: "standard", engine: "google", searchSuggestions: true, searchDefaultsApplied: true, sampleDataRemoved: true },
+    workspaces: [], activeWs: "", tabs: [], activeTab: {}, bookmarks: [], history: [], graph: {}, clips: [], closed: [], snapshots: [],
+    panel: { open: false, tab: "clips" }, recent: [], stats: { blocked: 0, upgraded: 0 }, favicons: {},
   };
 }
 
-export function seed(): BrowserState {
+/** A first run: one workspace with one new tab, and nothing else. */
+export function fresh(): BrowserState {
   const s = blank();
-  s.workspaces = [
-    { id: "w1", name: "Field research", color: "#0E7C66", isolate: true, graph: true, active: now() },
-    { id: "w2", name: "Thesis", color: "#2F5FD0", isolate: false, graph: true, active: now() - 7200000 },
-    { id: "w3", name: "Trip planning", color: "#9A5B05", isolate: true, graph: true, active: now() - 86400000 },
-  ];
-  s.activeWs = "w1";
-  const U: Record<string, string> = {
-    wet: "https://wetlands.example.org/carbon-storage", blue: "https://bluecarbon.example.org/overview",
-    soil: "https://soil-methods.example.org/sampling", tidal: "https://data.example.gov/tidal-marsh",
-    coring: "https://fieldguides.example.org/coring", acc: "https://coastal-lab.example.edu/accretion",
-    ch3: "https://docs.example.com/chapter-3", rail: "https://rail.example.org/timetable", stay: "https://stays.example.com/guesthouses",
-  };
-  const walk = (wsId: string, steps: [string, string?][]) => {
-    const ids: Record<string, string> = {};
-    steps.forEach(([k, from], i) => {
-      const tmp = { ws: wsId, url: U[k], title: titleFor(U[k]), lastNode: from ? ids[from] : null };
-      visit(s, tmp);
-      ids[k] = tmp.lastNode as string;
-      if (s.history[0]) s.history[0].ts = now() - (steps.length - i) * 420000;
-    });
-    return ids;
-  };
-  const n1 = walk("w1", [["wet"], ["blue", "wet"], ["tidal", "blue"], ["soil", "wet"], ["coring", "soil"]]);
-  const n2 = walk("w2", [["acc"], ["ch3", "acc"]]);
-  const n3 = walk("w3", [["rail"], ["stay", "rail"]]);
-  const g1 = graphOf(s, "w1");
-  const pos: Record<string, [number, number]> = { wet: [78, 156], blue: [442, 60], tidal: [819, 108], soil: [442, 276], coring: [819, 300] };
-  Object.keys(pos).forEach((k) => {
-    const n = nodeById(g1, n1[k])!;
-    [n.x, n.y] = pos[k];
-  });
-  const note = addNode(s, "w1", { type: "note", text: "Check whether drained marshes release carbon faster. Compare with the soil sampling page.", x: 78, y: 420 });
-  const q = addNode(s, "w1", { type: "question", text: "How is stored carbon measured?", x: 546, y: 480 });
-  link(s, "w1", note.id, n1.soil, "note");
-  link(s, "w1", q.id, n1.soil, "answers");
-  link(s, "w1", n1.blue, n1.soil, "contradicts");
-
-  const tabFor = (wsId: string, key: string, nid: string) => {
-    const t = makeTab(wsId, U[key]);
-    t.lastNode = nid;
-    s.tabs.push(t);
-    return t;
-  };
-  const t1 = tabFor("w1", "wet", n1.wet);
-  tabFor("w1", "blue", n1.blue);
-  tabFor("w1", "soil", n1.soil);
-  const t2 = tabFor("w2", "acc", n2.acc);
-  tabFor("w2", "ch3", n2.ch3);
-  const t3 = tabFor("w3", "rail", n3.rail);
-  tabFor("w3", "stay", n3.stay);
-  s.activeTab = { w1: t1.id, w2: t2.id, w3: t3.id };
-  s.history.sort((a, b) => b.ts - a.ts);
-
-  s.clips = [
-    { id: uid("c"), ws: "w1", nodeId: n1.wet, text: "Waterlogged soils slow decomposition, which keeps carbon locked in for long periods.", url: U.wet, title: titleFor(U.wet), ts: now() - 600000 },
-    { id: uid("c"), ws: "w1", nodeId: n1.soil, text: "The stored-carbon figure depends on how deep you sample.", url: U.soil, title: titleFor(U.soil), ts: now() - 300000 },
-  ];
-  s.bookmarks = [
-    { id: uid("b"), ws: "w1", url: U.wet, title: titleFor(U.wet), folder: "Carbon", ts: now() - 900000 },
-    { id: uid("b"), ws: "w1", url: U.blue, title: titleFor(U.blue), folder: "Carbon", ts: now() - 800000 },
-    { id: uid("b"), ws: "w1", url: U.soil, title: titleFor(U.soil), folder: "Methods", ts: now() - 700000 },
-  ];
+  const workspace: Workspace = { id: uid("w"), name: "Personal", color: "#2F5FD0", isolate: true, graph: true, active: now() };
+  s.workspaces = [workspace];
+  s.activeWs = workspace.id;
+  graphOf(s, workspace.id);
+  newTabIn(s, workspace.id, "synapse://newtab");
   return s;
+}
+
+// Hosts and workspace ids used by the sample data that earlier versions created on first run.
+const SAMPLE_HOST = /(^|\.)example\.(org|com|gov|edu)$/i;
+const SAMPLE_WORKSPACE_IDS = new Set(["w1", "w2", "w3"]);
+
+function isSampleUrl(url: string | undefined): boolean {
+  if (!url) return false;
+  try {
+    return SAMPLE_HOST.test(new URL(url).hostname);
+  } catch {
+    return false;
+  }
+}
+
+/** Removes the sample pages, clips, notes and workspaces from earlier versions, keeping everything the user made. */
+export function removeSampleData(s: BrowserState) {
+  s.tabs = s.tabs.filter((t) => !isSampleUrl(t.url));
+  s.history = s.history.filter((h) => !isSampleUrl(h.url));
+  s.bookmarks = s.bookmarks.filter((b) => !isSampleUrl(b.url));
+  s.clips = s.clips.filter((c) => !isSampleUrl(c.url));
+  s.closed = s.closed.filter((c) => !isSampleUrl(c.tab.url));
+  const sampleNoteTexts = new Set([
+    "Check whether drained marshes release carbon faster. Compare with the soil sampling page.",
+    "How is stored carbon measured?",
+  ]);
+  Object.values(s.graph).forEach((g) => {
+    g.nodes = g.nodes.filter((n) => !isSampleUrl(n.url) && !sampleNoteTexts.has(n.text ?? ""));
+    const ids = new Set(g.nodes.map((n) => n.id));
+    g.edges = g.edges.filter((e) => ids.has(e.a) && ids.has(e.b));
+  });
+  const isEmpty = (wsId: string) =>
+    !s.tabs.some((t) => t.ws === wsId && t.url !== "synapse://newtab") &&
+    !s.history.some((h) => h.ws === wsId) &&
+    !s.bookmarks.some((b) => b.ws === wsId) &&
+    !(s.graph[wsId]?.nodes.length);
+  s.workspaces = s.workspaces.filter((w) => !(SAMPLE_WORKSPACE_IDS.has(w.id) && isEmpty(w.id)));
+  Object.keys(s.graph).forEach((wsId) => {
+    if (!s.workspaces.some((w) => w.id === wsId)) delete s.graph[wsId];
+  });
+  s.tabs = s.tabs.filter((t) => s.workspaces.some((w) => w.id === t.ws));
+  if (!s.workspaces.length) {
+    const clean = fresh();
+    Object.assign(s, { workspaces: clean.workspaces, activeWs: clean.activeWs, tabs: clean.tabs, activeTab: clean.activeTab, graph: clean.graph });
+  }
+  if (!s.workspaces.some((w) => w.id === s.activeWs)) s.activeWs = s.workspaces[0].id;
+  s.workspaces.forEach((w) => {
+    if (!tabsOf(s, w.id).length) newTabIn(s, w.id, "synapse://newtab");
+  });
+  s.stats = { blocked: 0, upgraded: 0 };
+}
+
+/** Saves selected page text as a clip in the tab's workspace, linked to the page's graph node. */
+export function addClipIn(s: BrowserState, tabId: string, text: string) {
+  const t = s.tabs.find((x) => x.id === tabId);
+  if (!t) return;
+  const node = graphOf(s, t.ws).nodes.find((n) => n.type === "page" && n.key === siteKey(t.url));
+  s.clips.unshift({ id: uid("c"), ws: t.ws, nodeId: node?.id ?? null, text, url: t.url, title: t.title, ts: now() });
+  s.panel = { open: true, tab: "clips" };
+}
+
+/** Adds a note to the tab's workspace graph, linked to the page it came from. */
+export function addNoteIn(s: BrowserState, tabId: string, text: string) {
+  const t = s.tabs.find((x) => x.id === tabId);
+  if (!t) return;
+  const src = nodeById(graphOf(s, t.ws), t.lastNode);
+  if (src) {
+    const n = addNode(s, t.ws, { type: "note", text, x: src.x - 40 + Math.round(Math.random() * 40), y: src.y + 150 });
+    link(s, t.ws, n.id, src.id, "note");
+  } else addNode(s, t.ws, { type: "note", text });
+  s.panel = { open: true, tab: "notes" };
 }
